@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="canvas"></canvas>
+
+  <script type="text/javascript">
+    // 1. 获取canvas元素
+    var canvas = document.getElementById("canvas");
+    // 2. 获取上下文对象
+    var context = canvas.getContext('2d');
+    // 3. 绘制图片
+    context.moveTo(90, 15);
+    context.lineTo(210, 15);
+    context.lineTo(210, 135);
+    context.lineTo(90, 135);
+    context.lineTo(90, 15);
+    context.fillStyle='blue';
+    context.fill();
+  </script>
+</body>
+</html>

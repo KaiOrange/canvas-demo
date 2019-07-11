@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="canvas" ></canvas>
+
+  <script type="text/javascript">
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext('2d');
+    var sW = 1;
+    var lW = 4;
+    var spacing = 10;
+    for (var x = 0; x < canvas.width; x+=spacing) {
+      context.moveTo(x, 0);
+      if(x % (spacing * 5) === 0){
+        context.lineTo(x, lW);
+      } else {
+        context.lineTo(x, sW);
+      }
+    }
+    for (let y = 0; y < canvas.height; y+=spacing) {
+      context.moveTo(0, y);
+      if(y % (spacing * 5) === 0){
+        context.lineTo(lW, y);
+      } else {
+        context.lineTo(sW, y);
+      }
+    }
+    context.stroke();
+
+    // 其他代码
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext('2d');
+    var sW = 1;
+    var lW = 4;
+    var spacing = 10;
+
+    // 绘制坐标系
+    function drawCoordinate(){
+      context.beginPath();
+      for (var x = 0; x < canvas.width; x+=spacing) {
+        context.moveTo(x, 0);
+        if(x % (spacing * 5) === 0){
+          context.lineTo(x, lW);
+        } else {
+          context.lineTo(x, sW);
+        }
+      }
+      for (let y = 0; y < canvas.height; y+=spacing) {
+        context.moveTo(0, y);
+        if(y % (spacing * 5) === 0){
+          context.lineTo(lW, y);
+        } else {
+          context.lineTo(sW, y);
+        }
+      }
+      context.strokeStyle='black';
+      context.stroke();
+    }
+
+
+    // 其他代码
+
+    // 中心坐标(centerX,centerY)
+    var centerX = canvas.width / 2;
+    var centerY = canvas.height / 2;
+
+    // 小球圆心的坐标
+    var ballX = centerX;
+    var ballY = centerY;
+    // 小球的半径
+    var ballRadius = 20;
+
+    
+    // 小球的角度
+    var angle = 0;
+    var radiusX = 100;
+
+    // 更新小球
+    function updateBall(){
+      ballX = centerX + Math.sin(angle) * radiusX;
+      angle += 0.08;
+    }
+
+    // 绘制小球
+    function drawBall(){
+      context.beginPath();
+      context.arc(ballX, ballY, ballRadius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+      context.closePath();
+      context.fillStyle='orange';
+      context.fill();
+    }
+
+    function animate(){
+      // 清屏
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 绘制坐标系
+      drawCoordinate();
+
+      // 更新小球位置
+      updateBall();
+      // 绘制球
+      drawBall();
+
+      // 递归调用
+      requestAnimationFrame(animate);
+    }
+
+    // 启动动画
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
