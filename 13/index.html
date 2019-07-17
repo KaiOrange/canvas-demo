@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    body{
+      background: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+
+  <script type="text/javascript" src="point.js" ></script>
+
+  <script type="text/javascript">
+    // 自己创建canvas 并通过DOM操作添加到body中
+    var canvas = document.createElement("canvas")
+    document.body.appendChild(canvas);
+    var context = canvas.getContext('2d');
+    // 设置样式属性
+    canvas.style.position = "fixed";
+    canvas.style.top = 0;
+    canvas.style.left = 0;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.zIndex = "-1";
+
+    var cWidth = canvas.width;
+    var cHeight = canvas.height; 
+    var points = [];
+    var pointsLength = 20;
+    var lineMaxLen = 100;
+
+    // 创建点
+    for (var i = 0; i < pointsLength; i++) {
+      var p = new Point(canvas,{
+        x: Math.floor(Math.random() * cWidth),
+        y: Math.floor(Math.random() * cHeight),
+        vx: Math.random() * 4 - 2,
+        vy: Math.random() * 4 - 2,
+      })
+      points.push(p);
+    }
+
+    function animate(){
+      // 清屏
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (var i = 0; i < points.length; i++) {
+        var p1 = points[i];
+        p1.update();
+        p1.draw();
+        // 划线
+        for (var j = i + 1; j < points.length; j++) {
+          var p2 = points[j];
+          var l = Math.sqrt(Math.pow(p2.x - p1.x,2) + Math.pow(p2.y - p1.y,2));
+          if (l < lineMaxLen) {
+            context.beginPath();
+            context.moveTo(p1.x, p1.y);
+            context.lineTo(p2.x, p2.y);
+            // 越远颜色越淡
+            context.strokeStyle='rgba(0,0,0,' + ((lineMaxLen - l) / lineMaxLen) + ')';
+            context.stroke();
+          }
+        }
+      }
+
+      // 递归调用
+      requestAnimationFrame(animate);
+    }
+
+    // 启动动画
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
