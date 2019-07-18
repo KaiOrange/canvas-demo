@@ -100,11 +100,12 @@
       // 绘制椭圆
       context.save();
       context.beginPath();
+      // 将坐标系平移到圆心位置
+      context.translate(centerX, centerY );
       // 把圆缩放后使之形成椭圆
       context.scale(1, radiusY / radiusX);
-      // 因为缩放是相对于坐标系的 所以需要平移
-      context.translate(0, centerY * (radiusX / radiusY - 1));
-      context.arc(centerX, centerY, radiusX, Math.PI / 180 * 0, Math.PI / 180 * 360);
+      // 此时(0,0)是平移后的位置 也就是原坐标系的(centerX, centerY)
+      context.arc(0, 0, radiusX, Math.PI / 180 * 0, Math.PI / 180 * 360);
       context.strokeStyle='red';
       context.stroke();
       context.restore();
