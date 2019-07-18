@@ -103,7 +103,7 @@
       // 把圆缩放后使之形成椭圆
       context.scale(1, radiusY / radiusX);
       // 因为缩放是相对于坐标系的 所以需要平移
-      context.translate(0, centerY);
+      context.translate(0, centerY * (radiusX / radiusY - 1));
       context.arc(centerX, centerY, radiusX, Math.PI / 180 * 0, Math.PI / 180 * 360);
       context.strokeStyle='red';
       context.stroke();
