@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #eeeeee;
+      border: 1px solid #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas  id="canvas" width="600" height="400"/>
+
+  <script type="text/javascript">
+    // 获取元素
+    let canvas = document.getElementById('canvas');
+    // 获取上下文
+    let context = canvas.getContext('2d');
+
+    class Ball {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.radius = options.radius || 20;
+        this.color = options.color || '#000';
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+        this.mass = options.mass || 0; // 质量
+        if (this.mass <= 0) {
+          this.mass = Math.pow(this.radius,3) / Math.pow(20,3);
+        }
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.beginPath();
+        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.fillStyle = this.color;
+        this.context.closePath();
+        this.context.fill();
+      }
+    }
+
+    let balls = []
+
+    balls.push(new Ball(context,{
+      x:100,
+      y:190,
+      vx:4,
+      vy:2,
+      // ay:0.5,
+      color:'red',
+    }));
+
+    balls.push(new Ball(context,{
+      x:canvas.width - 100,
+      y:190,
+      vx:-3,
+      vy:2,
+      // ay:0.5,
+      color:'blue',
+    }));
+
+
+    function checkWalls(ball){
+      // 边界反弹
+      if (ball.x < ball.radius) {
+        ball.x = ball.radius;
+        ball.vx *= -1;
+      } else if (ball.x > canvas.width - ball.radius) {
+        ball.x = canvas.width - ball.radius;
+        ball.vx *= -1;
+      }
+      
+      if (ball.y < ball.radius) {
+        ball.y = ball.radius;
+        ball.vy *= -1;
+      } else if (ball.y > canvas.height - ball.radius) {
+        ball.y = canvas.height - ball.radius;
+        // ball.vy *= -0.95; // 假设能量损耗是0.05
+        // ball.vx *= 0.99; // 摩擦力
+        ball.vy *= -1;
+      }
+    }
+
+    function draw(ball){
+      ball.draw();
+    }
+
+    function checkCollision(ball0,ball1) {
+      let dx = ball1.x - ball0.x;
+      let dy = ball1.y - ball0.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      // 检测冲突
+      if (dist < ball0.radius + ball1.radius) {
+        let angle = Math.atan2(dy, dx);
+        let sin = Math.sin(angle);
+        let cos = Math.cos(angle);
+
+        // 左侧小球旋转后小球的位置
+        let x0 = 0;
+        let y0 = 0;
+        // 右侧小球旋转后小球的位置
+        let x1 = dx * cos + dy * sin;
+        let y1 = 0; // 或者 y1 = dy * cos - dx * sin;
+
+        // 旋转后小球0的速度分量
+        let vx0 = ball0.vx * cos + ball0.vy * sin;
+        let vy0 = ball0.vy * cos - ball0.vx * sin;
+        // 旋转后小球1的速度分量
+        let vx1 = ball1.vx * cos + ball1.vy * sin;
+        let vy1 = ball1.vy * cos - ball1.vx * sin;
+
+        let vxTotal = vx0 - vx1;
+        vx0 = ((ball0.mass - ball1.mass) * vx0 + 2 * ball1.mass * vx1) /
+              (ball0.mass + ball1.mass);
+        vx1 = vxTotal + vx0;
+        // 两小球的x坐标加上速度 计算出新的x坐标
+        x0 += vx0;
+        x1 += vx1;
+
+        // 相对于ball0原点为圆心时 旋转回去的坐标
+        let x0Final = x0 * cos - y0 * sin;
+        let y0Final = y0 * cos + x0 * sin;
+        let x1Final = x1 * cos - y1 * sin;
+        let y1Final = y1 * cos + x1 * sin;
+        // 相对于 原来的坐标
+        ball1.x = ball0.x + x1Final;
+        ball1.y = ball0.y + y1Final;
+        ball0.x = ball0.x + x0Final;
+        ball0.y = ball0.y + y0Final;
+
+        // 速度旋转回去
+        ball0.vx = vx0 * cos - vy0 * sin;
+        ball0.vy = vy0 * cos + vx0 * sin;
+        ball1.vx = vx1 * cos - vy1 * sin;
+        ball1.vy = vy1 * cos + vx1 * sin;
+      }
+    }
+
+    function animate (){
+      requestAnimationFrame(animate);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      balls.forEach(ball=>{
+        // 更新小球的速度
+        ball.update();
+        // 检测是否碰撞到边界
+        checkWalls(ball);
+      });
+
+
+      for (let i = 0; i < balls.length - 1; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          checkCollision(balls[i], balls[j]);
+        }
+      }
+
+      // 绘制
+      balls.forEach(draw);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #eeeeee;
+      border: 1px solid #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas  id="canvas" width="600" height="400"/>
+
+  <script type="text/javascript">
+    // 获取元素
+    let canvas = document.getElementById('canvas');
+    // 获取上下文
+    let context = canvas.getContext('2d');
+
+    class Ball {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.radius = options.radius || 20;
+        this.color = options.color || '#000';
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+        this.mass = options.mass || 0; // 质量
+        if (this.mass <= 0) {
+          this.mass = Math.pow(this.radius,3) / Math.pow(20,3);
+        }
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.beginPath();
+        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.fillStyle = this.color;
+        this.context.closePath();
+        this.context.fill();
+      }
+    }
+
+    let balls = [];
+    let colors = ['red','blue','yellow','green','orange'];
+    for (let i = 0; i < 10; i++) {
+      balls.push(new Ball(context,{
+        x: (i + 1) * 50,
+        y: 190,
+        radius: Math.floor(Math.random() * 10 + 15), 
+        vx: Math.random() * 6 - 3,
+        vy: Math.random() * 6 - 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+      }));
+    }
+
+    function checkWalls(ball){
+      // 边界反弹
+      if (ball.x < ball.radius) {
+        ball.x = ball.radius;
+        ball.vx *= -1;
+      } else if (ball.x > canvas.width - ball.radius) {
+        ball.x = canvas.width - ball.radius;
+        ball.vx *= -1;
+      }
+      
+      if (ball.y < ball.radius) {
+        ball.y = ball.radius;
+        ball.vy *= -1;
+      } else if (ball.y > canvas.height - ball.radius) {
+        ball.y = canvas.height - ball.radius;
+        // ball.vy *= -0.95; // 假设能量损耗是0.05
+        // ball.vx *= 0.99; // 摩擦力
+        ball.vy *= -1;
+      }
+    }
+
+    function draw(ball){
+      ball.draw();
+    }
+
+    function rotate (x, y, sin, cos, reverse) {
+      return {
+        x: (reverse) ? (x * cos + y * sin) : (x * cos - y * sin),
+        y: (reverse) ? (y * cos - x * sin) : (y * cos + x * sin)
+      };
+    }
+
+    function checkCollision(ball0,ball1) {
+      let dx = ball1.x - ball0.x;
+      let dy = ball1.y - ball0.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      // 检测冲突
+      if (dist < ball0.radius + ball1.radius) {
+        let angle = Math.atan2(dy, dx);
+        let sin = Math.sin(angle);
+        let cos = Math.cos(angle);
+
+        // boll0旋转后小球的位置
+        let pos0 = {x: 0, y: 0};
+        // boll1旋转后小球的位置
+        let pos1 = rotate(dx, dy, sin, cos, true);
+        // ball0旋转后的速度
+        let vel0 = rotate(ball0.vx, ball0.vy, sin, cos, true);
+        // ball1旋转后的速度
+        let vel1 = rotate(ball1.vx, ball1.vy, sin, cos, true);
+
+        let vxTotal = vel0.x - vel1.x;
+        vel0.x = ((ball0.mass - ball1.mass) * vel0.x + 2 * ball1.mass * vel1.x) /
+                  (ball0.mass + ball1.mass);
+        vel1.x = vxTotal + vel0.x;
+
+        // 两小球的x坐标加上速度 计算出新的x坐标
+        // 速度之和
+        var absV = Math.abs(vel0.x) + Math.abs(vel1.x);
+        // 小球重叠的距离 也就是两个小球最终总共需要移开的距离才能保证两球刚好接触 
+        // 由于这里只走了一帧 所以这个距离也就是实际的速度之和
+        let overlap = (ball0.radius + ball1.radius) - Math.abs(pos0.x - pos1.x);
+        // 速度/absV 就是速度所占的比例 再乘以overlap 是这一帧需要走的距离
+        pos0.x += vel0.x / absV * overlap;
+        pos1.x += vel1.x / absV * overlap;
+
+        // 相对于ball0原点为圆心时 旋转回去的坐标
+        let pos0F = rotate(pos0.x, pos0.y, sin, cos, false);
+        let pos1F = rotate(pos1.x, pos1.y, sin, cos, false);
+        // 相对于 原来的坐标
+        ball1.x = ball0.x + pos1F.x;
+        ball1.y = ball0.y + pos1F.y;
+        ball0.x = ball0.x + pos0F.x;
+        ball0.y = ball0.y + pos0F.y;
+        // 速度旋转回去
+        let vel0F = rotate(vel0.x, vel0.y, sin, cos, false);
+        let vel1F = rotate(vel1.x, vel1.y, sin, cos, false);
+        ball0.vx = vel0F.x;
+        ball0.vy = vel0F.y;
+        ball1.vx = vel1F.x;
+        ball1.vy = vel1F.y;
+      }
+    }
+
+    // function checkCollision (ball0, ball1) {
+    //     var dx = ball1.x - ball0.x,
+    //         dy = ball1.y - ball0.y,
+    //         dist = Math.sqrt(dx * dx + dy * dy);
+    //     //collision handling code here
+    //     if (dist < ball0.radius + ball1.radius) {
+    //       //calculate angle, sine, and cosine
+    //       var angle = Math.atan2(dy, dx),
+    //           sin = Math.sin(angle),
+    //           cos = Math.cos(angle),
+    //           //rotate ball0's position
+    //           pos0 = {x: 0, y: 0}, //point
+    //           //rotate ball1's position
+    //           pos1 = rotate(dx, dy, sin, cos, true),
+    //           //rotate ball0's velocity
+    //           vel0 = rotate(ball0.vx, ball0.vy, sin, cos, true),
+    //           //rotate ball1's velocity
+    //           vel1 = rotate(ball1.vx, ball1.vy, sin, cos, true),
+    //           //collision reaction
+    //           vxTotal = vel0.x - vel1.x;
+    //       vel0.x = ((ball0.mass - ball1.mass) * vel0.x + 2 * ball1.mass * vel1.x) /
+    //                (ball0.mass + ball1.mass);
+    //       vel1.x = vxTotal + vel0.x;
+    //       //update position - to avoid objects becoming stuck together
+    //       var absV = Math.abs(vel0.x) + Math.abs(vel1.x),
+    //           overlap = (ball0.radius + ball1.radius) - Math.abs(pos0.x - pos1.x);
+    //       pos0.x += vel0.x / absV * overlap;
+    //       pos1.x += vel1.x / absV * overlap;
+    //       //rotate positions back
+    //       var pos0F = rotate(pos0.x, pos0.y, sin, cos, false),
+    //           pos1F = rotate(pos1.x, pos1.y, sin, cos, false);
+    //       //adjust positions to actual screen positions
+    //       ball1.x = ball0.x + pos1F.x;
+    //       ball1.y = ball0.y + pos1F.y;
+    //       ball0.x = ball0.x + pos0F.x;
+    //       ball0.y = ball0.y + pos0F.y;
+    //       //rotate velocities back
+    //       var vel0F = rotate(vel0.x, vel0.y, sin, cos, false),
+    //           vel1F = rotate(vel1.x, vel1.y, sin, cos, false);
+    //       ball0.vx = vel0F.x;
+    //       ball0.vy = vel0F.y;
+    //       ball1.vx = vel1F.x;
+    //       ball1.vy = vel1F.y;
+    //     }
+    //   }
+
+    function animate (){
+      requestAnimationFrame(animate);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      balls.forEach(ball=>{
+        // 更新小球的速度
+        ball.update();
+        // 检测是否碰撞到边界
+        checkWalls(ball);
+      });
+
+
+      for (let i = 0; i < balls.length - 1; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          checkCollision(balls[i], balls[j]);
+        }
+      }
+
+      // 绘制
+      balls.forEach(draw);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
