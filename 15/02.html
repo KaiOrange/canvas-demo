@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #eeeeee;
+      border: 1px solid #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas  id="canvas" width="600" height="400"/>
+
+  <script type="text/javascript">
+    // 获取元素
+    let canvas = document.getElementById('canvas');
+    // 获取上下文
+    let context = canvas.getContext('2d');
+
+    class Ball {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.radius = options.radius || 20;
+        this.color = options.color || '#000';
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.beginPath();
+        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.fillStyle = this.color;
+        this.context.closePath();
+        this.context.fill();
+      }
+
+      isContainsPoint(x,y){
+        return Math.hypot(this.x - x ,this.y - y) < this.radius;
+      }
+    }
+
+    let balls = []
+
+    balls.push(new Ball(context,{
+      x:20,
+      y:20,
+      vx:3,
+      vy:2,
+      ay:0.5,
+      color:'red',
+    }));
+
+    balls.push(new Ball(context,{
+      x:canvas.width - 20,
+      y:20,
+      vx:-3,
+      vy:2,
+      ay:0.5,
+      color:'blue',
+    }));
+
+
+    function checkWalls(ball){
+      // 边界反弹
+      if (ball.x < ball.radius) {
+        ball.x = ball.radius;
+        ball.vx *= -0.95;
+      } else if (ball.x > canvas.width - ball.radius) {
+        ball.x = canvas.width - ball.radius;
+        ball.vx *= -0.95;
+      }
+      
+      if (ball.y < ball.radius) {
+        ball.y = ball.radius;
+        ball.vy *= -0.95;
+      } else if (ball.y > canvas.height - ball.radius) {
+        ball.y = canvas.height - ball.radius;
+        ball.vy *= -0.95; // 假设能量损耗是0.05
+        ball.vx *= 0.99; // 摩擦力
+      }
+    }
+
+    function draw(ball){
+      ball.draw();
+    }
+
+    function animate (){
+      requestAnimationFrame(animate);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      balls.forEach(ball=>{
+        // 更新小球的速度
+        ball.update();
+        // 检测是否碰撞到边界
+        checkWalls(ball);
+      });
+
+      // 绘制
+      balls.forEach(draw);
+    }
+
+    animate();
+
+    let offsetLeft = canvas.offsetLeft;
+    let offsetTop = canvas.offsetTop;
+    canvas.addEventListener('mousemove', (e) => {
+      let x = e.pageX - offsetLeft;
+      let y = e.pageY - offsetTop;
+      balls.some(ball=>{
+        if (ball.isContainsPoint(x,y)) {
+          console.log('指针在小球内了！');
+          return true;
+        }
+      })
+    }, false);
+  </script>
+</body>
+</html>
