@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #eeeeee;
+      border: 1px solid #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas  id="canvas" width="600" height="400"/>
+
+  <script type="text/javascript">
+    function captureMouse (element) {
+      let mouse = {x: 0, y: 0, event: null};
+      let body_scrollLeft = document.body.scrollLeft;
+      let element_scrollLeft = document.documentElement.scrollLeft;
+      let body_scrollTop = document.body.scrollTop;
+      let element_scrollTop = document.documentElement.scrollTop;
+      let offsetLeft = element.offsetLeft;
+      let offsetTop = element.offsetTop;
+
+      element.addEventListener('mousemove', (e) => {
+        let x, y;
+        
+        if (e.pageX || e.pageY) {
+          x = e.pageX;
+          y = e.pageY;
+        } else {
+          x = e.clientX + body_scrollLeft + element_scrollLeft;
+          y = e.clientY + body_scrollTop + element_scrollTop;
+        }
+        x -= offsetLeft;
+        y -= offsetTop;
+        
+        mouse.x = x;
+        mouse.y = y;
+        mouse.event = e;
+      }, false);
+
+      return mouse;
+    };
+
+    function rotate (x, y, sin, cos, reverse) {
+      return {
+        x: (reverse) ? (x * cos + y * sin) : (x * cos - y * sin),
+        y: (reverse) ? (y * cos - x * sin) : (y * cos + x * sin)
+      };
+    }
+
+    // 获取元素
+    let canvas = document.getElementById('canvas');
+    // 获取上下文
+    let context = canvas.getContext('2d');
+    // Canvas中的坐标
+    let mouse = captureMouse(canvas);
+    // 选中的小球
+    let selectedBall = null;
+    // 旧的坐标位置
+    let oldX = 0;
+    let oldY = 0;
+    let bounce = -0.95;
+
+    class Ball {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.radius = options.radius || 20;
+        this.color = options.color || '#000';
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.save();
+        this.context.beginPath();
+        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.fillStyle = this.color;
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+      }
+
+      isContainsPoint(x,y){
+        return Math.hypot(this.x - x ,this.y - y) < this.radius;
+      }
+    }
+
+    class Line {
+      constructor(context, options = {}) {
+        this.context = context;
+        this.x1 = options.x1 || 0;
+        this.y1 = options.y1 || 0;
+        this.x2 = options.x2 || 0;
+        this.y2 = options.y2 || 0;
+        this.lineWidth = options.lineWidth || 1;
+        this.color = options.color || '#000';
+        this.rotation = Math.atan2(this.y2 - this.y1, this.x2 - this.x1);
+      }
+
+      draw() {
+        this.context.save();
+        this.context.lineWidth = this.lineWidth;
+        this.context.strokeStyle = this.color;
+        this.context.beginPath();
+        this.context.moveTo(this.x1, this.y1);
+        this.context.lineTo(this.x2, this.y2);
+        this.context.closePath();
+        this.context.stroke();
+        this.context.restore();
+      }
+
+      getBounds() {
+        let minX = Math.min(this.x1, this.x2);
+        let minY = Math.min(this.y1, this.y2);
+        let maxX = Math.max(this.x1, this.x2);
+        let maxY = Math.max(this.y1, this.y2);
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY
+        }
+      };
+    }
+
+    let line = new Line(context,{
+      x1: 50, y1: 200,
+      x2: 300, y2: 260,
+    });
+
+    let balls = [];
+
+    balls.push(new Ball(context,{
+      x:20,
+      y:20,
+      vx:3,
+      vy:2,
+      ay:0.5,
+      color:'red',
+    }));
+
+    balls.push(new Ball(context,{
+      x:canvas.width - 20,
+      y:20,
+      vx:-3,
+      vy:2,
+      ay:0.5,
+      color:'blue',
+    }));
+
+    let cos = Math.cos(line.rotation);
+    let sin = Math.sin(line.rotation);
+    let bounds = line.getBounds();
+
+
+    function checkWalls(ball){
+      // 边界反弹
+      if (ball.x < ball.radius) {
+        ball.x = ball.radius;
+        ball.vx *= bounce;
+      } else if (ball.x > canvas.width - ball.radius) {
+        ball.x = canvas.width - ball.radius;
+        ball.vx *= bounce;
+      }
+      
+      if (ball.y < ball.radius) {
+        ball.y = ball.radius;
+        ball.vy *= bounce;
+      } else if (ball.y > canvas.height - ball.radius) {
+        ball.y = canvas.height - ball.radius;
+        ball.vy *= bounce; // 假设能量损耗是0.05
+        ball.vx *= 0.99; // 摩擦力
+      }
+    }
+
+    function checkLine(ball){
+       // 判断小球是否在粉色区域内
+      if (ball.x + ball.radius > bounds.x && ball.x - ball.radius < bounds.x + bounds.width){
+        // 位置以（line.x1，line.y1）为坐标原点来旋转坐标
+        let pos = rotate(ball.x - line.x1, ball.y - line.y1, sin, cos, true);
+        let vel = rotate(ball.vx, ball.vy, sin, cos, true);
+        // 线的y坐标如果小于小球的半径 说明碰撞上了 由于小球在斜线上面所以pos.y是负数 需要加个符号变为正数在比较
+        if (-pos.y < ball.radius) {
+          // 反弹处理
+          vel.y *= bounce;
+          pos.y = -ball.radius;
+          // 选择回去
+          let velF = rotate(vel.x, vel.y, sin, cos, false);
+          let posF = rotate(pos.x, pos.y, sin, cos, false);
+          ball.vx = velF.x;
+          ball.vy = velF.y;
+          ball.x = line.x1 + posF.x;
+          ball.y = line.y1 + posF.y;
+        }
+      }
+    }
+
+    function draw(ball){
+      ball.draw();
+    }
+
+    function animate (){
+      requestAnimationFrame(animate);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      balls.forEach(ball=>{
+        if (selectedBall === ball) {
+          trackVelocity();
+        } else {
+          // 更新小球的速度
+          ball.update();
+      
+          // 检测是否碰撞到斜面
+          checkLine(ball);
+
+          // 检测是否碰撞到边界
+          checkWalls(ball);
+        }
+      });
+
+      // 绘制
+      line.draw();
+      balls.forEach(draw);
+    }
+
+    animate();
+
+    // 拖拽
+    canvas.addEventListener('mousedown', () => {
+      balls.some(ball=>{
+        if (ball.isContainsPoint(mouse.x, mouse.y)) {
+          // 记录下选中的小球
+          selectedBall = ball;
+          oldX = ball.x;
+          oldY = ball.y;
+          // 添加事件来模拟拖拽
+          canvas.addEventListener('mousemove', onMouseMove, false);
+          canvas.addEventListener('mouseup', onMouseUp, false);
+          return true;
+        }
+      })
+      
+      function onMouseMove () {
+        selectedBall.x = mouse.x;
+        selectedBall.y = mouse.y;
+        selectedBall.vx = 0;
+        selectedBall.vy = 0;
+      }
+
+      function onMouseUp () {
+        selectedBall = null;
+        // 清除事件
+        canvas.removeEventListener('mousemove', onMouseMove, false);
+        canvas.removeEventListener('mouseup', onMouseUp, false);
+      }
+    }, false);
+    
+    function trackVelocity () {
+      selectedBall.vx = selectedBall.x - oldX;
+      selectedBall.vy = selectedBall.y - oldY;
+      oldX = selectedBall.x;
+      oldY = selectedBall.y;
+    }
+  </script>
+</body>
+</html>
