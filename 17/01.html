@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #eeeeee;
+      border: 1px solid #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas  id="canvas" width="600" height="400"></canvas>
+
+  <script type="text/javascript">
+    function captureMouse (element) {
+      let mouse = {x: 0, y: 0, event: null};
+      let body_scrollLeft = document.body.scrollLeft;
+      let element_scrollLeft = document.documentElement.scrollLeft;
+      let body_scrollTop = document.body.scrollTop;
+      let element_scrollTop = document.documentElement.scrollTop;
+      let offsetLeft = element.offsetLeft;
+      let offsetTop = element.offsetTop;
+
+      element.addEventListener('mousemove', (e) => {
+        let x, y;
+        
+        if (e.pageX || e.pageY) {
+          x = e.pageX;
+          y = e.pageY;
+        } else {
+          x = e.clientX + body_scrollLeft + element_scrollLeft;
+          y = e.clientY + body_scrollTop + element_scrollTop;
+        }
+        x -= offsetLeft;
+        y -= offsetTop;
+        
+        mouse.x = x;
+        mouse.y = y;
+        mouse.event = e;
+      }, false);
+
+      return mouse;
+    };
+
+    // 获取元素
+    let canvas = document.getElementById('canvas');
+    // 获取上下文
+    let context = canvas.getContext('2d');
+    // Canvas中的坐标
+    let mouse = captureMouse(canvas);
+    // 选中的对象
+    let selectedObj = null;
+
+    class Ball {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.radius = options.radius || 20;
+        this.color = options.color || '#000';
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.save();
+        this.context.beginPath();
+        this.context.fillStyle = this.color;
+        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+      }
+
+      isContainsPoint(x,y){
+        return Math.hypot(this.x - x ,this.y - y) < this.radius;
+      }
+    }
+
+    let ball1 = new Ball(context,{
+      x: canvas.width / 2 - 10,
+      y: canvas.height / 2 - 10,
+      color: 'blue',
+    })
+
+    let ball2 = new Ball(context,{
+      x: canvas.width / 2 + 40,
+      y: canvas.height / 2 - 10,
+      color: 'green',
+    })
+
+    function animate (){
+      requestAnimationFrame(animate);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 绘制
+      ball1.draw();
+      ball2.draw();
+    }
+
+    animate();
+
+    // 拖拽
+    canvas.addEventListener('mousedown', () => {
+      if (ball2.isContainsPoint(mouse.x, mouse.y)) {
+        // 添加事件来模拟拖拽
+        selectedObj = ball2;
+        canvas.addEventListener('mousemove', onMouseMove, false);
+        canvas.addEventListener('mouseup', onMouseUp, false);
+        return true;
+      }
+      
+      function onMouseMove () {
+        selectedObj.x = mouse.x;
+        selectedObj.y = mouse.y;
+        selectedObj.vx = 0;
+        selectedObj.vy = 0;
+      }
+
+      function onMouseUp () {
+        selectedObj = null;
+        // 清除事件
+        canvas.removeEventListener('mousemove', onMouseMove, false);
+        canvas.removeEventListener('mouseup', onMouseUp, false);
+      }
+    }, false);
+  </script>
+</body>
+</html>

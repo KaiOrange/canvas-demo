@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #eeeeee;
+      border: 1px solid #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas  id="canvas" width="600" height="400"></canvas>
+
+  <div>拖动绿色正方形，变红则碰撞</div>
+
+  <script type="text/javascript">
+    function captureMouse (element) {
+      let mouse = {x: 0, y: 0, event: null};
+      let body_scrollLeft = document.body.scrollLeft;
+      let element_scrollLeft = document.documentElement.scrollLeft;
+      let body_scrollTop = document.body.scrollTop;
+      let element_scrollTop = document.documentElement.scrollTop;
+      let offsetLeft = element.offsetLeft;
+      let offsetTop = element.offsetTop;
+
+      element.addEventListener('mousemove', (e) => {
+        let x, y;
+        
+        if (e.pageX || e.pageY) {
+          x = e.pageX;
+          y = e.pageY;
+        } else {
+          x = e.clientX + body_scrollLeft + element_scrollLeft;
+          y = e.clientY + body_scrollTop + element_scrollTop;
+        }
+        x -= offsetLeft;
+        y -= offsetTop;
+        
+        mouse.x = x;
+        mouse.y = y;
+        mouse.event = e;
+      }, false);
+
+      return mouse;
+    };
+
+    // 获取元素
+    let canvas = document.getElementById('canvas');
+    // 获取上下文
+    let context = canvas.getContext('2d');
+    // Canvas中的坐标
+    let mouse = captureMouse(canvas);
+    // 选中的对象
+    let selectedObj = null;
+
+    class Ball {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.radius = options.radius || 20;
+        this.color = options.color || '#000';
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.save();
+        this.context.beginPath();
+        this.context.fillStyle = this.color;
+        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+      }
+
+      isContainsPoint(x,y){
+        return Math.hypot(this.x - x ,this.y - y) < this.radius;
+      }
+
+    }
+
+    class Rect {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.width = options.width || 40;
+        this.height = options.height || 40;
+        this.color = options.color || '#000';
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.save();
+        this.context.fillStyle = this.color;
+        this.context.fillRect(this.x, this.y, this.width, this.height);
+        this.context.restore();
+      }
+
+      isContainsPoint(x,y){
+        return x >= this.x && y >= this.y && x <= this.x + this.width && y <= this.y + this.height;
+      }
+    }
+
+    let rect1 = new Rect(context,{
+      x: canvas.width / 2 - 40,
+      y: canvas.height / 2 - 50,
+      width: 80,
+      height: 100,
+      color: 'blue',
+    })
+
+    let rect2 = new Rect(context,{
+      x: canvas.width / 2 + 80,
+      y: canvas.height / 2,
+      color: 'green',
+    })
+
+
+
+    function animate (){
+      requestAnimationFrame(animate);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (isCollisionRectAndRect(rect1, rect2)) {
+        rect2.color = 'red'
+      } else {
+        rect2.color = 'green'
+      }
+
+      // 绘制
+      rect1.draw();
+      rect2.draw();
+    }
+
+    animate();
+
+    // 拖拽
+    canvas.addEventListener('mousedown', () => {
+      if (rect2.isContainsPoint(mouse.x, mouse.y)) {
+        // 添加事件来模拟拖拽
+        selectedObj = rect2;
+        canvas.addEventListener('mousemove', onMouseMove, false);
+        canvas.addEventListener('mouseup', onMouseUp, false);
+        return true;
+      }
+      
+      function onMouseMove () {
+        selectedObj.x = mouse.x - selectedObj.width / 2;
+        selectedObj.y = mouse.y - selectedObj.height / 2;
+        selectedObj.vx = 0;
+        selectedObj.vy = 0;
+      }
+
+      function onMouseUp () {
+        selectedObj = null;
+        // 清除事件
+        canvas.removeEventListener('mousemove', onMouseMove, false);
+        canvas.removeEventListener('mouseup', onMouseUp, false);
+      }
+    }, false);
+
+
+    function isCollisionBallAndBall(ball1, ball2) {
+      return (ball1.x - ball2.x) ** 2 + (ball1.y - ball2.y) ** 2 <= (ball1.radius + ball2.radius) ** 2;
+    }
+
+    function isCollisionRectAndRect(rect1, rect2) {
+      return !(rect1.x + rect1.width < rect2.x || rect2.x + rect2.width < rect1.x || rect1.y + rect1.height < rect2.y || rect2.y + rect2.height < rect1.y);
+    }
+  </script>
+</body>
+</html>
