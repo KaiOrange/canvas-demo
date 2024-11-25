@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    html, body{
+      padding: 0;
+      margin: 0;
+    }
+
+    #canvas{
+      background: #000;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="canvas"></canvas>
+
+  <script type="text/javascript">
+
+    class Particle {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+        this.radius = options.radius || 4;
+        this.hColor = options.hColor ?? 180;
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.save();
+        this.context.beginPath();
+        this.context.fillStyle = `hsl(${this.hColor} 100% 50%)`;
+        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+      }
+    }
+
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    let canvasWidth = canvas.width = window.innerWidth;
+    let canvasHeight = canvas.height = window.innerHeight;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvasWidth = canvas.width;
+      canvasHeight = canvas.height;
+    };
+
+    resizeCanvas();
+
+    window.addEventListener('resize', resizeCanvas);
+
+    const particle = new Particle(context, {
+      x: canvasWidth / 2,
+      y: canvasHeight / 2,
+    });
+
+    particle.draw();
+    
+  </script>
+</body>
+</html>

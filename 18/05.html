@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    html, body{
+      padding: 0;
+      margin: 0;
+    }
+
+    #canvas{
+      background: #000;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="canvas"></canvas>
+
+  <script type="text/javascript">
+    const random = (min = 1, max) => {
+      if (max === undefined) {
+        max = min;
+        min = 0;
+      }
+
+      return Math.random() * (max - min) + min;
+    };
+
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    let canvasWidth = canvas.width = window.innerWidth;
+    let canvasHeight = canvas.height = window.innerHeight;
+
+    class Particle {
+      constructor(context, options = {}){
+        this.context = context;
+        this.x = options.x || 0;
+        this.y = options.y || 0;
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+        this.radius = options.radius || 4;
+        this.hColor = options.hColor ?? 180;
+        this.isExplode = options.isExplode ?? false
+        this.lifeSpan = 100
+      }
+
+      update() {
+        if (this.isExplode) {
+          this.lifeSpan -= 2;
+        }
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+
+      draw() {
+        this.context.save();
+        this.context.beginPath();
+        this.context.fillStyle = `hsl(${this.hColor} 100% ${this.lifeSpan / 2}%)`;
+        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+      }
+
+      isDone() {
+        return this.lifeSpan <= 0
+      }
+    }
+
+    class Firework {
+      isExplode = false
+      baseParticle = null
+      particles = []
+      hColor = 180
+
+      constructor() {
+        this.hColor = Math.floor(random(360))
+        this.baseParticle = new Particle(context, {
+          x: random(20, canvasWidth - 20),
+          y: canvasHeight,
+          vy: -random(14, 20),
+          ay: 0.4,
+          radius: 2,
+          hColor: this.hColor,
+        });
+      }
+
+      update() {
+        if (!this.isExplode) {
+          this.baseParticle.update()
+          if (this.baseParticle.vy >= 0) {
+            this.explode()
+          }
+        } else {
+          for (let i = this.particles.length - 1; i >= 0; i--) {
+            this.particles[i].update()
+            if (this.particles[i].isDone()) {
+              this.particles.splice(i, 1)
+            }
+          }
+        }
+      }
+      
+      draw() {
+        if (!this.isExplode) {
+          this.baseParticle.draw()
+        } else {
+          this.particles.forEach(item => {
+            item.draw()
+          })
+        }
+      }
+
+      explode() {
+        for (let i = 0; i < 100; i++) {
+          const angle = random(Math.PI * 2)
+          const length = random(3)
+          this.particles.push(new Particle(context, {
+            x: this.baseParticle.x,
+            y: this.baseParticle.y,
+            vx: Math.cos(angle) * length,
+            vy: Math.sin(angle) * length,
+            ay: 0.1,
+            radius: 1,
+            hColor: this.hColor,
+            isExplode: true,
+          }))
+        }
+        this.isExplode = true
+      }
+
+      isDone() {
+        return this.isExplode && this.particles.length === 0;
+      }
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvasWidth = canvas.width;
+      canvasHeight = canvas.height;
+    }
+
+    resizeCanvas()
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // const firework = new Firework();
+    const fireworks = []
+    fireworks.push(new Firework());
+
+    function animate (){
+      requestAnimationFrame(animate);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (random() < (0.006 * canvasWidth / 100)) {
+        fireworks.push(new Firework());
+      }
+      
+      for (let i = fireworks.length - 1; i >= 0; i--) {
+        const item = fireworks[i];
+        item.update();
+        if (item.isDone()) {
+          fireworks.splice(i, 1);
+        } else {
+          item.draw();
+        }
+      }
+    }
+
+    animate()
+  </script>
+</body>
+</html>
