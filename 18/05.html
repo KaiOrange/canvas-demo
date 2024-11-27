@@ -49,12 +49,12 @@
         this.radius = options.radius || 4;
         this.hColor = options.hColor ?? 180;
         this.isExplode = options.isExplode ?? false
-        this.lifeSpan = 100
+        this.lifespan = 100
       }
 
       update() {
         if (this.isExplode) {
-          this.lifeSpan -= 2;
+          this.lifespan -= 2;
         }
         this.vx += this.ax;
         this.vy += this.ay;
@@ -65,7 +65,7 @@
       draw() {
         this.context.save();
         this.context.beginPath();
-        this.context.fillStyle = `hsl(${this.hColor} 100% ${this.lifeSpan / 2}%)`;
+        this.context.fillStyle = `hsl(${this.hColor} 100% ${this.lifespan / 2}%)`;
         this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
         this.context.closePath();
         this.context.fill();
@@ -73,7 +73,7 @@
       }
 
       isDone() {
-        return this.lifeSpan <= 0
+        return this.lifespan <= 0
       }
     }
 
