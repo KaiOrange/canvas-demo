@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css">
+    html,
+    body {
+      padding: 0;
+      margin: 0;
+      background: #f3f4f6;
+    }
+
+    #btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+
+<body>
+
+  <script type="text/javascript">
+    const random = (min = 1, max) => {
+      if (max === undefined) {
+        max = min;
+        min = 0;
+      }
+
+      return Math.random() * (max - min) + min;
+    }
+
+    class Particle {
+      constructor(context, options = {}) {
+        this.context = context
+        this.x = options.x || 0
+        this.y = options.y || 0
+        this.vx = options.vx || 0
+        this.vy = options.vy || 0
+        this.ax = options.ax || 0
+        this.ay = options.ay || 0
+        this.radius = options.radius || 6
+        this.radiusX = this.radius
+        this.radiusY = this.radius
+        this.rotation = options.rotation || 0;
+        this.hColor = options.hColor ?? 180
+      }
+
+      update() {
+        this.vx += this.ax
+        this.vy += this.ay
+        this.x += this.vx
+        this.y += this.vy
+      }
+
+      draw() {
+        this.context.save()
+        this.context.beginPath()
+        this.context.fillStyle = `hsl(${this.hColor} 100% 50%)`
+        this.context.ellipse(this.x, this.y, this.radiusX, this.radiusY, this.rotation, 0, 2 * Math.PI)
+        this.context.closePath()
+        this.context.fill()
+        this.context.restore()
+      }
+
+    }
+
+    class ConfettiBatch {
+
+      particles = []
+
+      constructor(context, options = {}) {
+        this.context = context;
+        const number = options.number || 80;
+        const radius = options.radius || 6;
+        const canvasWidth = options.canvasWidth || 300;
+        const canvasHeight = options.canvasHeight || 150;
+
+        const leftParticles = new Array(number).fill(0).map(() => {
+          const speed = random(8, 14)
+          const angle = random(15, 82) * Math.PI / 180
+          const absCos = Math.abs(Math.cos(angle))
+          const absSin = Math.abs(Math.sin(angle))
+          return new Particle(this.context, {
+            x: -radius,
+            y: canvasHeight * 5 / 7,
+            vx: speed * absCos,
+            vy: -speed * absSin,
+            ax: 0,
+            ay: 0.2,
+            radius: radius,
+            rotation: random(0, 0.2),
+            hColor: Math.floor(random(360))
+          })
+        })
+
+        const rightParticles = new Array(number).fill(0).map(() => {
+          const speed = random(8, 14)
+          const angle = random(15, 82) * Math.PI / 180
+          const absCos = Math.abs(Math.cos(angle))
+          const absSin = Math.abs(Math.sin(angle))
+          return new Particle(this.context, {
+            x: canvasWidth + radius,
+            y: canvasHeight * 5 / 7,
+            vx: -speed * absCos,
+            vy: -speed * absSin,
+            ax: 0,
+            ay: 0.2,
+            radius: radius,
+            rotation: random(-0, 2, 0),
+            hColor: Math.floor(random(360))
+          })
+        })
+
+        this.particles = leftParticles.concat(rightParticles)
+      }
+
+      update() {
+        this.particles.forEach(particle => {
+          particle.update()
+        })
+      }
+
+      draw() {
+        this.particles.forEach(particle => {
+          particle.draw()
+        })
+      }
+      
+    }
+
+    function createCanvas() {
+      const canvas = document.createElement('canvas')
+      canvas.style.position = 'fixed'
+      canvas.style.width = '100%'
+      canvas.style.height = '100%'
+      canvas.style.top = '0'
+      canvas.style.left = '0'
+      canvas.style.zIndex = '1000'
+      canvas.style.pointerEvents = 'none'
+      document.body.appendChild(canvas)
+      return canvas
+    }
+
+    function normalizeComputedStyleValue(string) {
+      return +string.replace(/px/, '')
+    }
+
+    function fixWidthAndHeight(canvas) {
+      const computedStyles = getComputedStyle(canvas)
+
+      const width = normalizeComputedStyleValue(computedStyles.getPropertyValue('width'))
+      const height = normalizeComputedStyleValue(computedStyles.getPropertyValue('height'))
+
+      canvas.setAttribute('width', width)
+      canvas.setAttribute('height', height)
+    }
+
+    class Confetti {
+      batches = []
+
+      constructor(options = {}) {
+        this.canvas = options.canvas || createCanvas()
+        this.context = this.canvas.getContext('2d')
+      }
+
+      show(showOptions = {}) {
+        const canvasRect = this.canvas.getBoundingClientRect()
+        const canvasWidth = canvasRect.width
+        const canvasHeight = canvasRect.height
+
+        const batch = new ConfettiBatch(this.context, {
+          number: showOptions.number,
+          radius: showOptions.radius,
+          canvasWidth: canvasWidth,
+          canvasHeight: canvasHeight,
+        })
+        this.batches.push(batch)
+        this.loop()
+      }
+
+      update() {
+        this.batches.forEach(batch => {
+          batch.update()
+        })
+      }
+
+      draw() {
+        this.batches.forEach(batch => {
+          batch.draw()
+        })
+      }
+
+      loop = () => {
+        fixWidthAndHeight(this.canvas)
+        const canvasWidth = this.canvas.canvasWidth
+        const canvasHeight = this.canvas.offsetHeight
+        this.context.clearRect(0, 0, canvasWidth, canvasHeight)
+        this.update(canvasHeight)
+        this.draw()
+
+        requestAnimationFrame(this.loop)
+      }
+
+      clear() {
+        this.batches = []
+      }
+
+      destroy() {
+        this.clear()
+        this.canvas.remove()
+      }
+    }
+
+    const confetti = new Confetti()
+    confetti.show()
+
+    
+  </script>
+</body>
+
+</html>
