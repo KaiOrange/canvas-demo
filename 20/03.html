@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Canvas系列</title>
+    <style type="text/css">
+      #canvas{
+        background: #eeeeee;
+        border: 1px solid #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" width="600" height="400"></canvas>
+
+    <script type="text/javascript">
+      const canvas = document.querySelector('canvas')
+      const context = canvas.getContext('2d')
+
+      context.lineWidth = 2
+
+      const circles = []
+      const minRadius = 2
+      const maxRadius = 120
+      const totalCircles = 500
+      const createCircleAttempts = 500
+
+      class Circle {
+        constructor(options = {}) {
+          this.x = options.x || 0
+          this.y = options.y || 0
+          this.radius = options.radius || minRadius
+        }
+
+        draw() {
+          context.beginPath()
+          context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI)
+          context.stroke()
+        }
+      }
+
+      function createAndDrawCircle() {
+        let newCircle
+        let circleSafeToDraw = false
+        for(let tries = 0; tries < createCircleAttempts; tries++) {
+          newCircle = new Circle({
+            x: Math.floor(Math.random() * canvas.width),
+            y: Math.floor(Math.random() * canvas.height),
+            radius: 10
+          })
+
+          if(doesCircleHaveACollision(newCircle)) {
+            continue;
+          } else {
+            circleSafeToDraw = true
+            break;
+          }
+        }
+
+        if(!circleSafeToDraw) return
+
+        circles.push(newCircle)
+        newCircle.draw()
+      }
+
+      function doesCircleHaveACollision(circle) {
+        for(let i = 0; i < circles.length; i++) {
+          const otherCircle = circles[i]
+          const a = circle.radius + otherCircle.radius
+          const x = circle.x - otherCircle.x
+          const y = circle.y - otherCircle.y
+
+          if (a >= Math.hypot(x, y)) {
+            return true;
+          }
+        }
+
+        if(circle.x + circle.radius >= canvas.width ||
+          circle.x - circle.radius <= 0) {
+          return true;
+        }
+
+        if(circle.y + circle.radius >= canvas.height ||
+            circle.y - circle.radius <= 0) {
+          return true;
+        }
+
+        return false
+      }
+
+      for(let i = 0; i < totalCircles; i++) {
+        createAndDrawCircle()
+      }
+      
+    </script>
+  </body>
+</html>

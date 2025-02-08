@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Canvas系列</title>
+    <style type="text/css">
+      #canvas{
+        background: #eeeeee;
+        border: 1px solid #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" width="600" height="400"></canvas>
+
+    <script type="text/javascript">
+      const canvas = document.querySelector('canvas')
+      const context = canvas.getContext('2d')
+
+      context.lineWidth = 2
+
+      class Circle {
+        constructor(options = {}) {
+          this.x = options.x || 0
+          this.y = options.y || 0
+          this.radius = options.radius || minRadius
+        }
+
+        draw() {
+          context.beginPath()
+          context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI)
+          context.stroke()
+        }
+      }
+
+      const circle = new Circle({
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        radius: 100
+      });
+
+      circle.draw()
+      
+    </script>
+  </body>
+</html>
