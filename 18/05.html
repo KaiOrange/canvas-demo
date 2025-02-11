@@ -9,6 +9,7 @@
     html, body{
       padding: 0;
       margin: 0;
+      overflow: hidden;
     }
 
     #canvas{
@@ -66,7 +67,7 @@
         this.context.save();
         this.context.beginPath();
         this.context.fillStyle = `hsl(${this.hColor} 100% ${this.lifespan / 2}%)`;
-        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
         this.context.closePath();
         this.context.fill();
         this.context.restore();
@@ -82,10 +83,12 @@
       baseParticle = null
       particles = []
       hColor = 180
+      context = null
 
-      constructor() {
+      constructor(context) {
+        this.context = context
         this.hColor = Math.floor(random(360))
-        this.baseParticle = new Particle(context, {
+        this.baseParticle = new Particle(this.context, {
           x: random(20, canvasWidth - 20),
           y: canvasHeight,
           vy: -random(14, 20),
@@ -125,7 +128,7 @@
         for (let i = 0; i < 100; i++) {
           const angle = random(Math.PI * 2)
           const length = random(3)
-          this.particles.push(new Particle(context, {
+          this.particles.push(new Particle(this.context, {
             x: this.baseParticle.x,
             y: this.baseParticle.y,
             vx: Math.cos(angle) * length,
@@ -155,16 +158,16 @@
 
     window.addEventListener('resize', resizeCanvas);
 
-    // const firework = new Firework();
+    // const firework = new Firework(context);
     const fireworks = []
-    fireworks.push(new Firework());
+    fireworks.push(new Firework(context));
 
     function animate (){
       requestAnimationFrame(animate);
       context.clearRect(0, 0, canvas.width, canvas.height);
 
       if (random() < (0.006 * canvasWidth / 100)) {
-        fireworks.push(new Firework());
+        fireworks.push(new Firework(context));
       }
       
       for (let i = fireworks.length - 1; i >= 0; i--) {

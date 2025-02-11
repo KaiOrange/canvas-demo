@@ -56,6 +56,8 @@
       update() {
         if (this.isExplode) {
           this.lifespan -= 2;
+          this.vx *= 0.98;
+          this.vy *= 0.98;
         }
         this.vx += this.ax;
         this.vy += this.ay;
@@ -72,6 +74,10 @@
         this.context.fill();
         this.context.restore();
       }
+
+      isDone() {
+        return this.lifespan <= 0
+      }
     }
 
     class Firework {
@@ -84,11 +90,14 @@
       constructor(context) {
         this.context = context
         this.hColor = Math.floor(random(360))
+        const ay = 0.4
+        const h = random(0.5 * canvasHeight, 0.9 * canvasHeight)
+        const vy = -Math.sqrt(2 * ay * h)
         this.baseParticle = new Particle(this.context, {
-          x: canvasWidth / 2,
+          x: random(20, canvasWidth - 20),
           y: canvasHeight,
-          vy: -random(14, 20),
-          ay: 0.4,
+          vy: vy,
+          ay,
           radius: 2,
           hColor: this.hColor,
         });
@@ -101,9 +110,12 @@
             this.explode()
           }
         } else {
-          this.particles.forEach(item => {
-            item.update()
-          })
+          for (let i = this.particles.length - 1; i >= 0; i--) {
+            this.particles[i].update()
+            if (this.particles[i].isDone()) {
+              this.particles.splice(i, 1)
+            }
+          }
         }
       }
       
@@ -134,6 +146,10 @@
         }
         this.isExplode = true
       }
+
+      isDone() {
+        return this.isExplode && this.particles.length === 0;
+      }
     }
 
     function resizeCanvas() {
@@ -147,14 +163,32 @@
 
     window.addEventListener('resize', resizeCanvas);
 
-    const firework = new Firework(context);
+    // const firework = new Firework(context);
+    const fireworks = []
+    fireworks.push(new Firework(context));
 
     function animate (){
       requestAnimationFrame(animate);
-      context.clearRect(0, 0, canvas.width, canvas.height);
+      // context.clearRect(0, 0, canvas.width, canvas.height);
 
-      firework.update();
-      firework.draw();
+      context.globalAlpha = 0.2;
+      context.fillStyle = 'black';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.globalAlpha = 1;
+
+      if (random() < (0.006 * canvasWidth / 100)) {
+        fireworks.push(new Firework(context));
+      }
+
+      for (let i = fireworks.length - 1; i >= 0; i--) {
+        const item = fireworks[i];
+        item.update();
+        if (item.isDone()) {
+          fireworks.splice(i, 1);
+        } else {
+          item.draw();
+        }
+      }
     }
 
     animate()

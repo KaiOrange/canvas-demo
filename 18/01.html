@@ -9,6 +9,7 @@
     html, body{
       padding: 0;
       margin: 0;
+      overflow: hidden;
     }
 
     #canvas{
@@ -23,7 +24,6 @@
   <canvas id="canvas"></canvas>
 
   <script type="text/javascript">
-
     class Particle {
       constructor(context, options = {}){
         this.context = context;
@@ -48,7 +48,7 @@
         this.context.save();
         this.context.beginPath();
         this.context.fillStyle = `hsl(${this.hColor} 100% 50%)`;
-        this.context.arc(this.x, this.y, this.radius, Math.PI / 180 * 0, Math.PI / 180 * 360);
+        this.context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
         this.context.closePath();
         this.context.fill();
         this.context.restore();
@@ -60,23 +60,23 @@
     let canvasWidth = canvas.width = window.innerWidth;
     let canvasHeight = canvas.height = window.innerHeight;
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      canvasWidth = canvas.width;
-      canvasHeight = canvas.height;
-    };
-
-    resizeCanvas();
-
-    window.addEventListener('resize', resizeCanvas);
-
     const particle = new Particle(context, {
       x: canvasWidth / 2,
       y: canvasHeight / 2,
     });
 
     particle.draw();
+
+    function resizeCanvas() {
+      canvasWidth = canvas.width = window.innerWidth;
+      canvasHeight = canvas.height = window.innerHeight;
+
+      particle.x = canvasWidth / 2;
+      particle.y = canvasHeight / 2;
+      particle.draw()
+    };
+
+    window.addEventListener('resize', resizeCanvas);
     
   </script>
 </body>
