@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Canvas系列</title>
+  <style type="text/css" >
+    #canvas{
+      background: #eeeeee;
+      border: 1px solid #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas  id="canvas" width="600" height="400"></canvas>
+
+  <script type="text/javascript">
+    function captureMouse (element) {
+      let mouse = {x: 0, y: 0, event: null};
+      let body_scrollLeft = document.body.scrollLeft;
+      let element_scrollLeft = document.documentElement.scrollLeft;
+      let body_scrollTop = document.body.scrollTop;
+      let element_scrollTop = document.documentElement.scrollTop;
+      let offsetLeft = element.offsetLeft;
+      let offsetTop = element.offsetTop;
+
+      element.addEventListener('mousemove', (e) => {
+        let x, y;
+        
+        if (e.pageX || e.pageY) {
+          x = e.pageX;
+          y = e.pageY;
+        } else {
+          x = e.clientX + body_scrollLeft + element_scrollLeft;
+          y = e.clientY + body_scrollTop + element_scrollTop;
+        }
+        x -= offsetLeft;
+        y -= offsetTop;
+        
+        mouse.x = x;
+        mouse.y = y;
+        mouse.event = e;
+      }, false);
+
+      return mouse;
+    };
+
+    // 获取元素
+    let canvas = document.getElementById('canvas');
+    // 获取上下文
+    let context = canvas.getContext('2d');
+    // Canvas中的坐标
+    let mouse = captureMouse(canvas);
+    // 选中的小球
+    let selectedObj = null;
+
+    class Polygon {
+      constructor(context, options = {}) {
+        this.context = context;
+        // 多边形顶点数组，每个顶点是一个包含 x 和 y 属性的对象
+        this.vertices = options.vertices || [];
+        this.color = options.color || '#000';
+        this.vx = options.vx || 0;
+        this.vy = options.vy || 0;
+        this.ax = options.ax || 0;
+        this.ay = options.ay || 0;
+      }
+
+      update() {
+        this.vx += this.ax;
+        this.vy += this.ay;
+        // 更新每个顶点的位置
+        for (let vertex of this.vertices) {
+          vertex.x += this.vx;
+          vertex.y += this.vy;
+        }
+      }
+
+      draw() {
+        this.context.save();
+        this.context.beginPath();
+        this.context.fillStyle = this.color;
+        // 移动到第一个顶点
+        if (this.vertices.length > 0) {
+          this.context.moveTo(this.vertices[0].x, this.vertices[0].y);
+          // 依次连接其他顶点
+          for (let i = 1; i < this.vertices.length; i++) {
+            this.context.lineTo(this.vertices[i].x, this.vertices[i].y);
+          }
+          // 闭合路径
+          this.context.closePath();
+          this.context.fill();
+        }
+        this.context.restore();
+      }
+
+      // 使用射线法判断点是否在多边形内
+      isContainsPoint(x, y) {
+        let inside = false;
+        for (let i = 0, j = this.vertices.length - 1; i < this.vertices.length; j = i++) {
+          const xi = this.vertices[i].x, yi = this.vertices[i].y;
+          const xj = this.vertices[j].x, yj = this.vertices[j].y;
+
+          const intersect = ((yi > y) !== (yj > y)) &&
+            (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+          if (intersect) inside = !inside;
+        }
+        return inside;
+      }
+
+      moveBy(dx, dy) {
+        for (let vertex of this.vertices) {
+          vertex.x += dx;
+          vertex.y += dy;
+        }
+      }
+
+      getVertices () {
+        return this.vertices;
+      }
+    }
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 80;
+    const numVertices = 8;
+    const angleStep = (Math.PI * 2) / numVertices;
+    const vertices = [];
+    for (let i = 0; i < numVertices; i++) {
+      const angle = i * angleStep;
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      vertices.push({ x, y });
+    }
+
+    let polygon = new Polygon(context, { 
+      vertices, 
+      color: 'blue'
+    });
+
+    
+
+    function animate (){
+      requestAnimationFrame(animate);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      // 绘制
+      polygon.draw();
+    }
+
+    animate();
+
+    // 拖拽
+    canvas.addEventListener('mousedown', () => {
+      let startX = mouse.x;
+      let startY = mouse.y;
+      if (polygon.isContainsPoint(mouse.x, mouse.y)) {
+        selectedObj = polygon;
+      }
+
+      if (selectedObj) {
+        // 添加事件来模拟拖拽
+        canvas.addEventListener('mousemove', onMouseMove, false);
+        canvas.addEventListener('mouseup', onMouseUp, false);
+        return true;
+      }
+      
+      function onMouseMove () {
+        const dx = mouse.x - startX;
+        const dy = mouse.y - startY;
+
+        selectedObj.moveBy(dx, dy);
+
+        // 更新起始位置
+        startX = mouse.x;
+        startY = mouse.y;
+      }
+
+      function onMouseUp () {
+        selectedObj = null;
+        // 清除事件
+        canvas.removeEventListener('mousemove', onMouseMove, false);
+        canvas.removeEventListener('mouseup', onMouseUp, false);
+      }
+    }, false);
+
+  </script>
+</body>
+</html>
