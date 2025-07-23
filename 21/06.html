@@ -55,7 +55,7 @@
     let context = canvas.getContext('2d');
     // Canvas中的坐标
     let mouse = captureMouse(canvas);
-    // 选中的小球
+    // 选中的元素
     let selectedObj = null;
 
     class Polygon {
@@ -224,6 +224,7 @@
       { x: polygon2CenterX + 20, y: polygon2CenterY - 30 },
       { x: polygon2CenterX + 40, y: polygon2CenterY - 10 },
       { x: polygon2CenterX + 30, y: polygon2CenterY + 20 },
+      { x: polygon2CenterX, y: polygon2CenterY },
       { x: polygon2CenterX - 30, y: polygon2CenterY + 20 }
     ], color: 'green' });
     let boll = new Ball(context, { x: 
@@ -309,35 +310,68 @@
     }
 
     // 原有的 SAT 碰撞检测函数，用于凸多边形
-    function isCollisionConvexPolygons(vertices1, vertices2) {
+    function isCollisionPolygonAndPolygon(vertices1, vertices2) {
       const axes1 = getEdgesNormals(vertices1);
       const axes2 = getEdgesNormals(vertices2);
       const allAxes = [...axes1, ...axes2];
+
+      let minOverlap = Infinity;
+      let collisionAxis = null;
 
       for (let axis of allAxes) {
         const projection1 = project(vertices1, axis);
         const projection2 = project(vertices2, axis);
 
-        if (!(projection1.max >= projection2.min && projection2.max >= projection1.min)) {
-          return false;
+        const overlap = Math.min(projection1.max, projection2.max) - Math.max(projection1.min, projection2.min);
+
+        if (overlap < 0) {
+          return {
+            isColliding: false,
+            depth: 0,
+            axis: null
+          };
+        }
+
+        if (overlap < minOverlap) {
+          minOverlap = overlap;
+          collisionAxis = axis;
         }
       }
-      return true;
+
+      return {
+        isColliding: true,
+        depth: minOverlap,
+        axis: collisionAxis
+      };
     }
 
     // 修改后的 SAT 函数，支持凹多边形
-    function isCollisionPolygonPolygon(vertices1, vertices2) {
+    function isCollisionConcavePolygon(vertices1, vertices2) {
       const convexPolygons1 = earClipping(vertices1);
       const convexPolygons2 = earClipping(vertices2);
 
+      let minDepth = Infinity;
+      let collisionAxis = null;
+      let isColliding = false;
+
       for (let poly1 of convexPolygons1) {
         for (let poly2 of convexPolygons2) {
-          if (isCollisionConvexPolygons(poly1, poly2)) {
-            return true;
+          const collisionResult = isCollisionPolygonAndPolygon(poly1, poly2);
+          if (collisionResult.isColliding) {
+            isColliding = true;
+            if (collisionResult.depth < minDepth) {
+              minDepth = collisionResult.depth;
+              collisionAxis = collisionResult.axis;
+            }
           }
         }
       }
-      return false;
+
+      return {
+        isColliding: isColliding,
+        depth: isColliding ? minDepth : 0,
+        axis: isColliding ? collisionAxis : null
+      };
     }
 
     function animate (){
@@ -346,8 +380,8 @@
 
       // 检测碰撞
       if (
-        isCollisionPolygonPolygon(polygon1.getVertices(), polygon2.getVertices()) ||
-        isCollisionPolygonPolygon(boll.getVertices(), polygon2.getVertices()) 
+        isCollisionConcavePolygon(polygon1.getVertices(), polygon2.getVertices()).isColliding ||
+        isCollisionConcavePolygon(boll.getVertices(), polygon2.getVertices()).isColliding
       ) {
         polygon2.color = 'red';
       } else {
